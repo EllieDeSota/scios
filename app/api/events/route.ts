@@ -1,5 +1,70 @@
 import { google } from "googleapis";
 
+function parseFormattedText(text: string) {
+	if (!text) return "";
+
+	// First, process block-level syntax that should NOT be wrapped in <p>
+	let parsed = text
+		// Code blocks
+		.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
+			`<pre class="bg-muted p-4 rounded-lg my-4"><code class="text-sm">${code}</code></pre>`
+		)
+
+		// Headers
+		.replace(/^### (.*)$/gm, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
+		.replace(/^## (.*)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-3">$1</h2>')
+		.replace(/^# (.*)$/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
+
+		// Blockquotes
+		.replace(/^\s*>\s*(.*)$/gm, '<blockquote class="border-l-2 border-primary pl-4 italic my-4">$1</blockquote>')
+
+		// Horizontal rule
+		.replace(/^---$/gm, '<hr class="my-8 border-border" />')
+
+		// Bold / Italic / Strike / Inline code
+		.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+		.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+		.replace(/~~(.*?)~~/g, '<del class="line-through">$1</del>')
+		.replace(/`(.*?)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-sm">$1</code>')
+
+		// Links
+		.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
+
+		// Unordered and ordered list items
+		.replace(/^\s*[-*]\s+(.*)$/gm, '<li class="ml-4">$1</li>')
+		.replace(/^\s*\d+\.\s+(.*)$/gm, '<li class="ml-4">$1</li>')
+
+		// Group consecutive <li> items into one <ul>
+		.replace(/((<li class="ml-4">.*<\/li>\n?)+)/gm, match =>
+			`<ul class="list-disc ml-6 my-2">${match.trim()}</ul>`
+		);
+
+	// Wrap remaining lines in paragraphs — only if they don't start with block tags
+	parsed = parsed
+		.split('\n')
+		.map(line => {
+			if (
+				line.trim() === '' ||
+				line.startsWith('<h') ||
+				line.startsWith('<ul') ||
+				line.startsWith('<li') ||
+				line.startsWith('<blockquote') ||
+				line.startsWith('<pre') ||
+				line.startsWith('<hr') ||
+				line.startsWith('<table') ||
+				line.startsWith('<tr') ||
+				line.startsWith('<td')
+			) {
+				return line;
+			}
+			return `<p class="my-2">${line}</p>`;
+		})
+		.join('\n');
+
+	return parsed;
+}
+
+
 export async function GET() {
 	try {
 		const auth = await google.auth.getClient({
@@ -40,7 +105,7 @@ export async function GET() {
 				hosts: value[2].split(",") ?? [],
 				location: value[3] ?? "",
 				eventLink: value[4] ?? "",
-				description: value[5] ?? "",
+				description: parseFormattedText(value[5]) ?? "",
 				oldResources,
 				agenda,
 				isOld: value[8],
