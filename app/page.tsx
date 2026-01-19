@@ -121,7 +121,7 @@ export default function Home() {
 									<>
 										<span className="italic">Expert event organizers—end-to-end logistics, operations, and delivery.</span>
 										<br />
-										We'll host your event and handle planning, coordination, and execution so you can focus on outcomes.
+										We&apos;ll host your event and handle planning, coordination, and execution so you can focus on outcomes.
 									</>
 								}
 							/>
